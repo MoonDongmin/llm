@@ -1,0 +1,37 @@
+[
+  {
+    "role": "user",
+    "content": "hi"
+  },
+  {
+    "role": "assistant",
+    "content": "Hi! It's nice to meet you. Is there something I can help you with, or would you like to chat?"
+  },
+  {
+    "role": "user",
+    "content": "my name is dongmin"
+  },
+  {
+    "role": "assistant",
+    "content": "Nice to meet you, Dongmin! How are you today? Do you have any interests or hobbies that you'd like to share? I'm here to listen and chat if you'd like."
+  },
+  {
+    "role": "user",
+    "content": "what is my name?"
+  },
+  {
+    "role": "assistant",
+    "content": "I remember! Your name is Dongmin. How's it going, Dongmin?"
+  },
+  {
+    "role": "user",
+    "content": "what is my name?"
+  },
+  {
+    "role": "assistant",
+    "content": {
+      "think": null,
+      "answer": "Your name is still Dongmin!"
+    }
+  }
+]

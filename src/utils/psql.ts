@@ -11,7 +11,7 @@ export async function queryDatabase(queries: string[]): Promise<string[][]> {
         for (const query of queryList) {
             const db = new Client({
                 user: `${process.env.USER}`,
-                host: "localhost",
+                host: `${process.env.HOST}`,
                 database: `${process.env.DATABASE}`,
                 password: `${process.env.PASSWORD}`,
                 port: parseInt(`${process.env.PORT}`),
@@ -36,7 +36,7 @@ export async function queryDatabase(queries: string[]): Promise<string[][]> {
 export async function getTableMetadata(tableName: string) {
     const db = new Client({
         user: `${process.env.USER}`,
-        host: "localhost",
+        host: `${process.env.HOST}`,
         database: `${process.env.DATABASE}`,
         password: `${process.env.PASSWORD}`,
         port: parseInt(`${process.env.PORT}`),

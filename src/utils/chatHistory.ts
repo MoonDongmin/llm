@@ -77,3 +77,24 @@ export const normalizeMessagesForOllama = (msgs: any[]) => {
         return msg;
     });
 };
+
+// history 파일에서 최근 답변 SQL 반환해주는 함수
+export const getCurrentSQL = (): string[] => {
+    const rawData = fs.readFileSync(historyFile, "utf-8");
+    const history = JSON.parse(rawData);
+    const lastEntry = history[history.length - 1].content.answer;
+
+    const matches = [...lastEntry.matchAll(/```sql\s*([\s\S]*?)```/g)];
+
+    if (matches.length === 0) {
+        throw new Error("SQL이 없습니다.");
+    }
+
+    return matches.map(m =>
+        m[1]
+            .trim()
+            .replace(/\s+/g, " "), // 모든 개행, 탭, 여러 스페이스 → 단일 스페이스
+    );
+};
+
+

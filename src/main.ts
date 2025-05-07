@@ -1,9 +1,10 @@
-import express from "express";
+import express    from "express";
 import chatRoutes from "./routes/chat";
 import {
+    getCurrentSQL,
     loadChatHistory,
     trainOllamaWithHistory,
-} from "./utils/chatHistory";
+}                 from "./utils/chatHistory";
 
 const app = express();
 const port = 8081;

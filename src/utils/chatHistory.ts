@@ -1,6 +1,7 @@
-import * as fs  from "fs";
-import {Ollama} from "ollama";
-import process  from "node:process";
+import * as fs            from "fs";
+import {Ollama}           from "ollama";
+import process            from "node:process";
+import {getTableMetadata} from "./psql.ts";
 
 const historyFile = "chat_history.json";
 let messages: any = [];
@@ -14,7 +15,7 @@ export const loadChatHistory = () => {
             messages = fileContent.trim() ? JSON.parse(fileContent) : [];
         }
     } catch (error) {
-        console.error("채팅 기록을 불러오는 중 오류 발생:", error);
+        console.error("🚨채팅 기록을 불러오는 중 오류 발생:", error);
         messages = [];
     }
 };
@@ -32,21 +33,42 @@ export const getMessages = () => {
 
 // Ollama에게 기존 대화를 학습시키는 함수
 export const trainOllamaWithHistory = async () => {
-    if (messages.length === 0) return;
+    loadChatHistory();
 
-    console.log("기존 대화를 학습시키는 중...");
+    console.log("📖기존 대화를 학습시키는 중📖");
+    const snapshot = await getTableMetadata(); // 메타데이터 수집
+    const metadataPrompt = createMetadataMessage(snapshot); // 텍스트화
+
+    const isAlreadyStored = messages.some((msg: any) =>
+        msg.role === "assistant" &&
+        typeof msg.content === "object" &&
+        msg.content.answer?.includes("다음은 메타데이터입니다"),
+    );
+
+    if (!isAlreadyStored) {
+        messages.push(metadataPrompt); // 메타데이터 메시지를 대화 기록에 추가
+        saveChatHistory(messages); // 파일로 저장
+    }
 
     const normalizedMessages = messages.map((msg: any) => {
         if (msg.role === "assistant" && typeof msg.content === "object") {
             return {
                 role: msg.role,
-                content: `<think>\n${msg.content.think}\n</think>\n\n${msg.content.answer}`,
+                content: `${msg.content.think}\n\n${msg.content.answer}`,
             };
         }
         return msg;
     });
 
     const trainingPrompt = [
+        {
+            role: "system",
+            content: [
+                "다음은 현재 데이터베이스의 테이블 메타데이터입니다.",
+                metadataPrompt,
+                "이 정보를 바탕으로 테이블에 없는 속성 정보를 사용하지말고 이후 사용자의 SQL 요청에 응답하세요.",
+            ].join("\n\n"),
+        },
         {
             role: "system",
             content: "다음은 이전 대화 기록입니다. 이 기록을 참고하여 문맥을 유지하세요.",
@@ -60,7 +82,7 @@ export const trainOllamaWithHistory = async () => {
             messages: trainingPrompt,
             stream: false, // 학습 단계는 스트리밍 없이 진행
         });
-        console.log("학습완료!");
+        console.log("⭐️학습완료!⭐️");
     } catch (error) {
         console.error("Ollama 학습 오류:", error);
     }
@@ -98,3 +120,31 @@ export const getCurrentSQL = (): string[] => {
 };
 
 
+function formatMetadataForPrompt(snapshot: any[]): string {
+    return snapshot.map(({
+                             table,
+                             columns,
+                             samples,
+                         }) => {
+        const columnLines = columns.map(col =>
+            `- ${col.column_name} (${col.data_type}${col.is_nullable === "NO" ? ", NOT NULL" : ""})`,
+        ).join("\n");
+
+        const sampleLines = samples.length
+            ? samples.map((row, idx) => `  Row ${idx + 1}: ${JSON.stringify(row)}`).join("\n")
+            : "  (no sample data)";
+
+        return `테이블: ${table}\n컬럼 정보:\n${columnLines}\n샘플 데이터:\n${sampleLines}`;
+    }).join("\n\n");
+}
+
+function createMetadataMessage(snapshot: any[]): any {
+    const content = formatMetadataForPrompt(snapshot);
+    return {
+        role: "assistant",
+        content: {
+            think: "",
+            answer: `데이터베이스의 테이블 구조와 샘플 데이터를 학습하였습니다.\n\n 다음은 메타데이터입니다:\n\n${content}`,
+        },
+    };
+}

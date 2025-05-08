@@ -5,37 +5,45 @@ const {Client} = pg;
 export async function queryDatabase(queries: string[]): Promise<string[][]> {
     const results = [];
 
-    try {
-        const queryList = Array.isArray(queries) ? queries : [queries];  // 배열로 변환
+    const rawInput = Array.isArray(queries) ? queries.join(" ") : queries;
+    const queryList = splitQueries(rawInput); // 안전하게 쿼리 나누기
 
-        for (const query of queryList) {
-            const db = new Client({
-                user: `${process.env.USER}`,
-                host: `${process.env.HOST}`,
-                database: `${process.env.DATABASE}`,
-                password: `${process.env.PASSWORD}`,
-                port: parseInt(`${process.env.PORT}`),
-            });
+    for (let i = 0; i < queryList.length; i++) {
+        const query = queryList[i];
+        const db = new Client({
+            user: `${process.env.PGUSER}`,
+            host: `${process.env.HOST}`,
+            database: `${process.env.DATABASE}`,
+            password: `${process.env.PASSWORD}`,
+            port: parseInt(`${process.env.PORT}`),
+        });
 
-            await db.connect();
+        await db.connect();
 
+        try {
             const res = await db.query(query);
-            results.push(res.rows);
-
-            await db.end();
+            results.push({
+                label: `쿼리 결과 ${i + 1}`,
+                query: query,
+                rows: res.rows,
+            });
+        } catch (queryErr: any) {
+            results.push({
+                label: `쿼리 결과 ${i + 1} (실패)`,
+                query: query,
+                error: queryErr.message,
+            });
         }
 
-    } catch (err: any) {
-        console.error("Error", err.stack);
-        throw err;
+        await db.end();
     }
 
     return results;
 }
 
-export async function getTableMetadata(tableName: string) {
+export async function getTableMetadata() {
     const db = new Client({
-        user: `${process.env.USER}`,
+        user: `${process.env.PGUSER}`,
         host: `${process.env.HOST}`,
         database: `${process.env.DATABASE}`,
         password: `${process.env.PASSWORD}`,
@@ -82,7 +90,6 @@ export async function getTableMetadata(tableName: string) {
                 samples: sampleRows,
             });
         }
-
         return snapshot;
 
     } catch (error: any) {
@@ -91,4 +98,11 @@ export async function getTableMetadata(tableName: string) {
     } finally {
         await db.end();
     }
+}
+
+function splitQueries(raw: string): string[] {
+    return raw
+        .split(/;\s*/g)           // 세미콜론 기준으로 나누되 공백 제거
+        .map(q => q.trim())       // 앞뒤 공백 제거
+        .filter(q => q.length > 0); // 빈 쿼리 제거
 }

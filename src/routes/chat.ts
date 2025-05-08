@@ -86,7 +86,7 @@ router.get("/result", async (req, res) => {
 
 router.get("/table", async (req, res) => {
     try {
-        const metadata = await getTableMetadata("sensors");
+        const metadata = await getTableMetadata();
         res.send(metadata);
     } catch (err: any) {
         res.status(500).json({error: err.message});

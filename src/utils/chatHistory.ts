@@ -5,7 +5,7 @@ import {getTableMetadata} from "./psql.ts";
 
 const historyFile = "chat_history.json";
 let messages: any = [];
-const ollama = new Ollama({host: "http://127.0.0.1:11434"});
+const ollama = new Ollama({host: `${process.env.OLLAMAHOST}`});
 
 // JSON 파일에서 대화 기록 불러오기
 export const loadChatHistory = () => {
@@ -66,7 +66,8 @@ export const trainOllamaWithHistory = async () => {
             content: [
                 "다음은 현재 데이터베이스의 테이블 메타데이터입니다.",
                 metadataPrompt,
-                "이 정보를 바탕으로 테이블에 없는 속성 정보를 사용하지말고 이후 사용자의 SQL 요청에 응답하세요.",
+                "이 정보를 바탕으로 테이블에 없는 속성 정보를 사용하지말고 이후 사용자의 SQL 요청에 응답하세요. 그리고 SQL에는 주석을 달지말아주세요." +
+                "또한 NULL도 생각해서 SQL 쿼리를 짜주세요. 그리고 성능이 최대한 좋은 쪽으로 SQL 쿼리를 짜주세요.",
             ].join("\n\n"),
         },
         {

@@ -13,7 +13,7 @@ import {
 }                   from "../utils/psql.ts";
 
 const router = express.Router();
-const ollama = new Ollama({host: "http://127.0.0.1:11434"});
+const ollama = new Ollama({host: `${process.env.OLLAMAHOST}`});
 
 // llm 대화하기
 router.post("/", async (req, res) => {
